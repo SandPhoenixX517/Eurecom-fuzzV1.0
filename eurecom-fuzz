@@ -1,0 +1,261 @@
+#!/bin/bash
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+BLACK='\033[0m'
+aflppexec="0"
+aflgoexec="0"
+aflsmartexec="0"
+eclipserexec="0"
+Jo=1
+if test "$#" -eq 0; then
+	echo -e "${GREEN}eurecom-fuzz1.0${BLACK} is a tool developed by EURECOM students in the context of a project."
+	echo "This tool, is used to launch parralel fuzzing tasks using AflPlusPlus, AflGo, AflSmart and Eclipser."
+	echo "<Parameters go here>"
+	echo "    -Ap: This option means that you want to launch AFL++ fuzzing task(s)"
+	echo "    -Ag: This option means that you want to launch AFLgo fuzzing task(s)"
+	echo "    -As: This option means that you want to launch AFLsmart fuzzing task(s)"
+	echo "    -Ec:  This option means that you want to launch Eclipser fuzzing task(s)"
+	echo "    -Jo:  Refers to the number of fuzzing tasks"
+	echo -e "   	${RED}         ####Knowledge of the fuzzers is required####"
+	echo "	####Please enter your command w.r.t to the option's order.####"
+
+fi
+if test "$#" -gt 0; then
+	counter=1
+	stop=$#
+	while [ $counter -le $stop ]
+	do
+		verifier=$(($counter+1))
+		if test ${!counter} = "-Ap"; then
+			docker run -v ~/shared:/var/Eurecom -d --rm -it --cap-add=SYS_PTRACE --name aflplusplus  --volume $(pwd)/output-test:/home/EUREFUZZ/output aflplusplus:v0.2
+			if test $verifier -gt $stop ; then
+				echo -e "${RED}To display help regarding ${GREEN}eurecom-fuzz${RED}'s options, just type ${GREEN}'eurecom-fuzz' ${RED}in the terminal. Now, here is what you need to know about AFL++:"
+				docker exec  -it --privileged aflplusplus  afl-fuzz 
+				docker kill aflplusplus
+			fi
+			string="afl-fuzz"
+			Scounter=$counter
+			SeeMe="0"
+			while (( Scounter < stop && "$SeeMe" == "0" ))
+			do
+				
+				if test "$string" != "-Ap"; then
+					string="${string} ${!Scounter}"
+				fi
+				Scounter=$(($Scounter+1))
+				if [ ${!Scounter} = "-Ag" ] || [ ${!Scounter} = "-Ec" ]  || [ ${!Scounter} = "-As" ] || [ ${!Scounter} = "-Jo" ]
+				then
+					SeeMe=1
+				fi
+			done
+			counter=$Scounter
+			if test "$SeeMe" != "1"; then
+				string="${string} ${!counter}"
+			fi
+			
+                        aflppexec="1"
+			docker exec -d -it --privileged aflplusplus  ./aflppEmbedded $Jo "$string" 
+		fi
+		if test ${!counter} = "-Ag"; then
+				ver=$(($counter+1))
+				docker run -v ~/shared:/var/Eurecom -d --rm -it --cap-add=SYS_PTRACE --name go  --volume $(pwd)/output-test:/home/EUREFUZZ/output go:v0.2
+				if test $ver -gt $stop; then
+					echo -e "Thank you for using ${GREEN}eurecom-fuzz!${RED} BUT THE SECOND PART OF YOUR COMMAND IS NOT VALID SO HERE ARE THE OPTIONS THAT YOU ARE ALLOWED TO USE."
+					docker exec  -it --privileged go  afl-fuzz 
+					docker kill go
+				fi
+				aflgoOne="afl-fuzz"
+				Gcounter=$counter
+				chouf="0"
+				while (( Gcounter < stop && "$chouf" == "0" ))
+				do
+					if test "$aflgoOne" != "-Ag"; then
+						aflgoOne="${aflgoOne} ${!Gcounter}"
+					fi
+					Gcounter=$(($Gcounter+1))
+					if [ ${!Gcounter} = "-Ap" ] || [ ${!Gcounter} = "-Ec" ]  || [ ${!Gcounter} = "-As" ] || [ ${!Gcounter} = "-Jo" ] 
+					then
+						chouf=1
+					fi
+				done
+				counter=$Gcounter
+				if test "$chouf" != "1"; then
+					aflgoOne="${aflgoOne} ${!counter}"
+				fi
+                                aflgoexec="1"
+				echo "$aflgoOne"
+				docker exec   -it --privileged  go  ./aflgoEmbedded  $Jo "$aflgoOne" 
+				
+			fi
+			if test ${!counter} = "-As"; then
+				please=$(($counter+1))
+				docker run -v ~/shared:/var/Eurecom -d --rm -it --cap-add=SYS_PTRACE --name aflsmart  --volume $(pwd)/output-test:/home/EUREFUZZ/output aflsmart:v0.2
+				if test $please -gt $stop; then
+					echo -e "Thank you for using ${GREEN}eurecom-fuzz!${RED} BUT THE THIRD PART OF YOUR COMMAND IS NOT VALID SO HEREARE THE OPTIONS THAT YOU ARE ALLOWED TO USE."
+                                        docker exec  -it --privileged aflsmart afl-fuzz 
+                                        docker kill aflsmart
+
+
+				fi
+				aflsmartOne="afl-fuzz"
+				Dcounter=$counter
+				enemy="0"
+				while (( Dcounter < stop && "$enemy" == "0" ))
+				do
+					if test "$aflsmartOne" != "-As"; then
+						aflsmartOne="${aflsmartOne} ${!Dcounter}"
+					fi
+					Dcounter=$(($Dcounter+1))
+					if [ ${!Dcounter} = "-Ap" ] || [ ${!Dcounter} = "-Ec" ]  || [ ${!Dcounter} = "-Ag" ] || [ ${!Dcounter} = "-Jo" ] 
+					then
+						enemy=1
+					fi
+				done
+				counter=$Dcounter
+				if test "$enemy" != "1"; then
+					aflsmartOne="${aflsmartOne} ${!counter}"
+				fi
+                                aflsmartexec="1"
+				docker exec  -it --privileged aflsmart ./aflsmartEmbedded $Jo "$aflsmartOne" 
+				
+			fi
+			if test ${!counter} = "-Ec"; then
+				hmed=$(($counter+1))
+				docker run -v ~/shared:/var/Eurecom -d --rm -it --cap-add=SYS_PTRACE --name eclipser  --volume $(pwd)/output-test:/home/EUREFUZZ/output eclipser:v0.2
+
+				if test $hmed -gt $stop; then
+					docker exec  -it  --privileged  eclipser  dotnet Eclipser/build/Eclipser.dll fuzz --help 
+					docker kill eclipser
+				else
+				eclipser="dotnet Eclipser/build/Eclipser.dll fuzz"
+				Ecounter=$counter
+				medusa="0"
+				while (( Ecounter < stop && "$medusa" == "0" ))
+				do
+					if test "${!Ecounter}" != "-Ec"; then
+						eclipser="${eclipser} ${!Ecounter}"
+					fi
+					Ecounter=$(($Ecounter+1))
+					if [ ${!Ecounter} = "-Ap" ] || [ ${!Ecounter} = "-As" ]  || [ ${!Ecounter} = "-Ag" ] || [ ${!Ecounter} = "-Jo" ] 
+					then
+						medusa=1
+					fi
+				done
+				counter=$Ecounter
+				if test "$medusa" != "1"; then
+					eclipser="${eclipser} ${!counter}"
+				fi
+                                eclipserexec="1"
+                                echo "$eclipser"
+				docker exec -d  -it --privileged eclipser ./eclipserEmbedded "$eclipser"
+				fi
+			fi
+			if test "${!counter}" == "Jo"; then
+				echo "You did not specify a number here. By default it is 1"
+				Jo=1
+			else
+				if test "${!counter}" = "0"; then
+					echo "Error, Jo cannot accept 0 as input"
+					Jo=1
+				else
+					Jo=${!counter}
+				fi
+			fi
+		counter=$(($counter +1))
+	done 
+fi
+
+cPosition () {
+    export $1
+    exec < /dev/tty
+    oldstty=$(stty -g)
+    stty raw -echo min 0
+    echo -en "\033[6n" > /dev/tty
+    IFS=';' read -r -d R -a pos
+    stty $oldstty
+    eval "$1[0]=$((${pos[0]:2} - 2))"
+    eval "$1[1]=$((${pos[1]} - 1))"
+}
+
+index=0 
+declare -a aflpplist
+declare -a aflgolist
+declare -a aflsmartlist
+eclipserlist=0
+while (( "$index" != "$Jo"  ))
+do
+        if test "$aflppexec" == "1"; then
+                crashaflpp=$(ls ~/shared/outputaflppV1/$index/crashes | wc -l)
+                echo "AFL++ nb. Crashes= $crashaflpp"
+                cPosition pos
+                aflpplist[$index]=$pos
+        fi
+        index=$(($index+1))
+done
+index=0
+while (( "$index" != "$Jo"  ))
+do
+        if test "$aflgoexec" == "1"; then
+                crashaflgo=$(ls ~/shared/outputaflgoV1/$index/crashes | wc -l)
+                echo "AFLGo nb. Crashes= $crashaflgo"
+                cPosition pos
+                aflgolist[$index]=$pos
+        fi
+        index=$(($index+1))
+done
+index=0
+while (( "$index" != "$Jo"  ))
+do
+        if test "$aflsmartexec" == "1"; then
+                crashaflsmart=$(ls ~/shared/outputaflsmartV1/$index/crashes | wc -l)
+                echo "AFLSmart nb. Crashes= $crashaflsmart"
+                cPosition pos
+                aflsmartlist[$index]=$pos
+        fi
+        index=$(($index+1))
+done
+
+if test "$eclipserexec" == "1"; then
+        crasheclipser=$(ls ~/shared/outputeclipserV1/0/crashes | wc -l)
+        echo "Eclipser nb. Crashes= $crasheclipser"
+        cPosition pos
+        eclipserlist=$pos
+fi
+plz="0"
+while (( "$plz" == "0" ))
+do 
+        sleep 5
+        index=0
+        while (( "$index" != "$Jo" ))
+        do
+                if test "$aflppexec" == "1"; then
+                        crashaflpp=$(ls ~/shared/outputaflppV1/$index/crashes | wc -l)
+                        tput cup ${aflpplist[$index]}
+                        echo "AFL++ nb. Crashes= $crashaflpp"
+                fi
+        done
+        index=0
+        while (( "$index" != "$Jo" ))
+        do
+                if test "$aflgoexec" == "1"; then
+                        crashaflgo=$(ls ~/shared/outputaflgoV1/$index/crashes | wc -l)
+                        tput cup ${aflgolist[$index]}
+                        echo "AFLGo nb. Crashes= $crashaflgo"
+                fi
+        done
+        index=0
+	while (( "$index" != "$Jo" ))
+        do
+                if test "$aflsmartexec" == "1"; then
+                        crashaflsmart=$(ls ~/shared/outputaflsmartV1/$index/crashes | wc -l)
+                        tput cup ${aflsmartlist[$index]}
+                        echo "AFLSmart nb. Crashes= $crashaflsmart"
+                fi
+        done
+        index=0
+        if test "$eclipserexec" == "1"; then
+                crasheclipser=$(ls ~/shared/outputeclipserV1/0/crashes | wc -l)
+                tput cup $eclipserlist
+                echo "Eclipser nb. Crashes= $crasheclipser"
+        fi
+done
