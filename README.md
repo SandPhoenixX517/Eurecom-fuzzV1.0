@@ -1,5 +1,5 @@
 # Eurecom-fuzzV1.0
-Eurecom-fuzz Version1.0
+Eurecom-fuzz Version1.0 </br>
 Eurecom-fuzz is a set of bash scripts written by Mohamed NJEH & Ala TARHOUNI as a part of an academic Project at EURECOM.
 The tool permits its user to launch multiple fuzzing tasks at the same time using different Fuzzers and on different binaries
 and different sets of data. The fuzzers used are AFLPlusPlus, AFLGo, AFLSmart and Eclipser.
