@@ -1,51 +1,26 @@
 FROM ubuntu:16.04
+RUN apt-get update
+MAINTAINER Mohamed NJEH <njeh@eurecom.fr>
 
-WORKDIR /root/
-
-### Install dependencies
-RUN sed -i 's/archive.ubuntu.com/ftp.daumkakao.com/g' /etc/apt/sources.list && \
-    sed -i 's/# deb-src http:\/\/ftp.daum/deb-src http:\/\/ftp.daum/g' \
-      /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get -yy install \
-# Basic utilities
-      wget apt-transport-https \
-      sudo vim git unzip xz-utils ntp \
-      build-essential time libtool libtool-bin gdb \
-      automake autoconf bison flex \
-# Dependencies for KLEE
-      libcap-dev cmake libncurses5-dev python-minimal python-pip \
-# Dependencies for LAVA
-      libacl1-dev gperf && \
-# Dependencies for QEMU used in Eclipser
-    apt-get -yy build-dep qemu && \
-# Dependencies for Debian packages
-    apt-get -yy install lua5.1 autogen && \
-    apt-get -yy build-dep ufraw-batch icoutils vorbis-tools gnuplot-nox \
-      optipng dcraw wavpack gocr advancecomp x264 jhead sextractor gifsicle && \
-# Install .NET Core for Eclipser
-    wget -q https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    apt-get update && apt-get -yy install dotnet-sdk-2.1 && \
-    rm -f packages-microsoft-prod.deb
-# pip installation raises an error when combined together
-RUN pip install --upgrade pip
-RUN pip install --upgrade wllvm
-
-# Create a user and switch.
-RUN useradd -ms /bin/bash EUREFUZZ && \
-    adduser EUREFUZZ sudo && \
-    echo "EUREFUZZ ALL = NOPASSWD : ALL" >> /etc/sudoers
-USER EUREFUZZ
-WORKDIR /home/EUREFUZZ
-# Install Eclipser
-RUN git clone https://github.com/SoftSec-KAIST/Eclipser.git && \
-    cd Eclipser && \
-    git checkout tags/v0.1 && \
-    make && \
-    rm -rf ./Instrumentor/qemu/qemu-2.3.0*
-RUN cd ../
+RUN apt-get update \
+    && apt-get install -y \
+        afl git  wget libtool libtool-bin bison libglib2.0-dev build-essential automake libtool libc6-dev-i386
+RUN wget https://www.cairographics.org/releases/pixman-0.34.0.tar.gz
+RUN tar xvfz pixman-0.34.0.tar.gz
+RUN cd pixman-0.34.0 && ./configure --prefix=/usr --disable-static && make && make check && make install
+RUN apt-get update \
+    && apt-get install -y \
+        clang gcc gdb git python-setuptools gcc-multilib python-pip g++-multilib 
+RUN rm -r pixman-0.34.0.tar.gz pixman-0.34.0
+RUN apt-get update
+RUN git clone https://github.com/aflsmart/aflsmart
+RUN export CC=afl-gcc
+RUN export AFLSMART=$(pwd)/aflsmart
+RUN export WORKDIR=$(pwd)
+RUN cd aflsmart && make && make install && cp afl-* /usr/local/bin/
+RUN cd aflsmart && chmod +x setup_env.sh && ./setup_env.sh
 RUN git clone https://github.com/SandPhoenixX517/952558172239733620701363/
-RUN mv $(pwd)/952558172239733620701363/eclipserEmbedded eclipserEmbedded
-RUN chmod +x eclipserEmbedded
+RUN mv $(pwd)/952558172239733620701363/aflsmartEmbedded aflsmartEmbedded
+RUN chmod +x aflsmartEmbedded
+
 
